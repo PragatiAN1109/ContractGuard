@@ -168,8 +168,9 @@ in the source schema" is information. Note the third and fourth entries: `null` 
 was declared*, while the string `"null"` means *the default is JSON null*.
 
 The `RETURNED` symbol is the motivating case for the whole project. It is backward compatible by
-Avro's rules, and a consumer with a non-exhaustive `switch` can still break on it. Reporting the
-structural change is Phase 1; connecting it to consumer code is a later phase.
+Avro's rules, yet a consumer that gives the enum default its own business behaviour can still
+misbehave. [Operational risk analysis](#operational-risk-analysis) connects this change to the
+consumer line that would break.
 
 ## Compatibility analysis
 
@@ -411,8 +412,8 @@ order, because output is sorted on its own content rather than on traversal orde
 
 ## Project layout
 
-Packages under `com.contractguard` mirror the intended module boundaries. Several are still empty
-placeholders carrying only a `package-info.java` that states their responsibility.
+Packages under `com.contractguard` mirror the intended module boundaries. Only `rollout` is still a
+placeholder, carrying just a `package-info.java` that states its responsibility.
 
 | Package | Status |
 |---|---|

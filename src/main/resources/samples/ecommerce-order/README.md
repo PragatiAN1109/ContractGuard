@@ -1,7 +1,7 @@
 # Sample: e-commerce order events
 
-`order-v1.avsc` is the baseline, `order-v2.avsc` the proposed change. Comparing them exercises
-every change type ContractGuard reports today except field removal:
+`order-v1.avsc` is the baseline, `order-v2.avsc` the proposed change. Comparing them produces six
+changes across four of the nine change types:
 
 | Path | Change | v1 → v2 |
 |---|---|---|
@@ -13,5 +13,6 @@ every change type ContractGuard reports today except field removal:
 | `OrderEvent.items[].discountCents` | `FIELD_ADDED` | → `union<null,int>` |
 
 The `RETURNED` symbol is the motivating case: it is backward compatible by Avro's rules because
-the enum declares a default, yet a consumer whose `switch` lacks that branch can still misbehave.
-Detecting that is a later phase; Phase 1 only reports the structural change.
+the enum declares a default, yet a consumer that gives the default its own business behaviour can
+still misbehave. The `ENUM_SEMANTIC_FALLBACK_RISK` rule detects exactly that, using the consumers
+under [`consumers/`](consumers/) — see the risk section of the top-level README.
