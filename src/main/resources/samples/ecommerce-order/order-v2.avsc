@@ -1,0 +1,38 @@
+{
+  "type": "record",
+  "name": "OrderEvent",
+  "namespace": "com.example.orders",
+  "doc": "Emitted on every transition in the order lifecycle.",
+  "fields": [
+    {"name": "orderId", "type": "string"},
+    {"name": "customerEmail", "type": ["null", "string"], "default": null},
+    {
+      "name": "status",
+      "type": {
+        "type": "enum",
+        "name": "OrderStatus",
+        "symbols": ["CREATED", "PAID", "SHIPPED", "DELIVERED", "CANCELLED", "RETURNED"],
+        "default": "CREATED"
+      }
+    },
+    {"name": "totalCents", "type": "long"},
+    {"name": "currency", "type": "string", "default": "UNSPECIFIED"},
+    {"name": "couponCode", "type": ["null", "string"], "default": null},
+    {"name": "channel", "type": "string", "default": "WEB"},
+    {
+      "name": "items",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "OrderLine",
+          "fields": [
+            {"name": "sku", "type": "string"},
+            {"name": "quantity", "type": "int"},
+            {"name": "discountCents", "type": ["null", "int"], "default": null}
+          ]
+        }
+      }
+    }
+  ]
+}

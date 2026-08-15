@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: contractguard
+
+  datasource:
+    url: ${CONTRACTGUARD_DB_URL:jdbc:postgresql://localhost:5432/contractguard}
+    username: ${CONTRACTGUARD_DB_USERNAME:contractguard}
+    password: ${CONTRACTGUARD_DB_PASSWORD:contractguard}
+    hikari:
+      pool-name: contractguard-pool
+      maximum-pool-size: 10
+      connection-timeout: 5000
+
+  jpa:
+    hibernate:
+      # Flyway owns the schema; Hibernate never creates or alters it.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${CONTRACTGUARD_PORT:8080}
+  # No authentication yet, so bind to loopback. Override to 0.0.0.0 inside a container.
+  address: ${CONTRACTGUARD_BIND_ADDRESS:127.0.0.1}
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ContractGuard
+    version: '@project.version@'
+    phase: PHASE_1_SKELETON
+
+# '@project.version@' is substituted by Maven resource filtering at build time.
+contractguard:
+  version: '@project.version@'
+
+logging:
+  level:
+    root: INFO
+    com.contractguard: DEBUG

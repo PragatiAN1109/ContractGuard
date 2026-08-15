@@ -1,0 +1,22 @@
+{
+  "consumers": [
+    {
+      "name": "order-notification-service",
+      "description": "Sends customer emails on order lifecycle transitions. Still generated against order-v1.",
+      "consumesSchema": "com.example.orders.OrderEvent",
+      "sourceFiles": ["order-notification-service/OrderStatusHandler.java"]
+    },
+    {
+      "name": "order-analytics-service",
+      "description": "Counts fulfilment events. Never branches on the enum default.",
+      "consumesSchema": "com.example.orders.OrderEvent",
+      "sourceFiles": ["order-analytics-service/FulfilmentMetricsCollector.java"]
+    },
+    {
+      "name": "order-returns-service",
+      "description": "Already regenerated against order-v2 and handles RETURNED explicitly.",
+      "consumesSchema": "com.example.orders.OrderEvent",
+      "sourceFiles": ["order-returns-service/ReturnsProcessor.java"]
+    }
+  ]
+}

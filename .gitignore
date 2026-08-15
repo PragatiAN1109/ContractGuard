@@ -1,0 +1,46 @@
+# --- Local development planning notes -----------------------------------------
+# Working notes, not repository documentation. Public docs live in docs/.
+.notes/
+
+# --- Build output --------------------------------------------------------------
+target/
+build/
+out/
+*.jar
+*.war
+*.class
+
+# Keep the Maven wrapper jar — it must be committed for ./mvnw to work.
+!.mvn/wrapper/maven-wrapper.jar
+
+# --- IntelliJ IDEA -------------------------------------------------------------
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# --- Other IDEs ----------------------------------------------------------------
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+
+# --- Local configuration and secrets -------------------------------------------
+.env
+.env.local
+*.local.yml
+*.local.yaml
+application-local.yml
+application-local.properties
+
+# --- Logs and temporary files --------------------------------------------------
+*.log
+logs/
+*.pid
+*.hprof
+hs_err_pid*
+
+# --- OS ------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
