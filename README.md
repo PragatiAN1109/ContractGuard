@@ -25,9 +25,11 @@ Early development. What works today:
 - Store Avro schema versions in a project, with validation, SHA-256 content hashing and duplicate rejection
 - Compare two stored versions and get a deterministic, field-level structural diff
 - Analyse backward, forward and full structural compatibility between two stored versions
-- **Analyse operational risk against Java consumer source, independently of compatibility**
+- Analyse operational risk against Java consumer source, independently of compatibility
+- **Persist every analysis as a durable, auditable snapshot**
 
-Not built yet: the remaining four consumer risk rules, rollout guidance, and the web UI.
+Not built yet: asynchronous execution, the remaining four consumer risk rules, rollout guidance,
+and the web UI.
 
 ## Requirements
 
@@ -94,6 +96,9 @@ Flyway and the JPA mapping are genuinely exercised — they need a running Docke
 | `GET` | `/api/v1/projects/{projectId}/schemas/{sourceId}/diff/{targetId}` | Structural diff of two versions |
 | `GET` | `/api/v1/projects/{projectId}/schemas/{sourceId}/compatibility/{targetId}` | Compatibility analysis of two versions |
 | `GET` | `/api/v1/projects/{projectId}/schemas/{sourceId}/risk/{targetId}` | Operational risk against consumer source |
+| `POST` | `/api/v1/projects/{projectId}/analyses` | Run and persist a full analysis |
+| `GET` | `/api/v1/projects/{projectId}/analyses` | Analysis history, newest first |
+| `GET` | `/api/v1/analyses/{analysisId}` | Full persisted snapshot |
 | `GET` | `/api/v1/health` | Health check |
 
 Diff, compatibility and risk are deliberately **separate endpoints with separate payloads**. A diff
@@ -338,6 +343,47 @@ Analysis is AST-based with no symbol resolution, so it never needs the consumer'
 attribution therefore relies on two conservative signals — the file must reference the enum's simple
 name, and a switch must have *all* labels within the enum's symbol set.
 
+## Analysis runs
+
+The `/diff`, `/compatibility` and `/risk` endpoints compute on demand and keep nothing — useful for
+debugging a single question. `POST /api/v1/projects/{projectId}/analyses` runs the whole thing once
+and **stores the result**, so you can later answer "what did we know when we approved this change?"
+
+```bash
+curl -s -X POST $BASE/projects/$PROJECT/analyses -H 'Content-Type: application/json' \
+  -d "{\"sourceSchemaVersionId\":\"$V1\",\"targetSchemaVersionId\":\"$V2\"}"
+```
+
+Execution is synchronous today. The lifecycle is still `PENDING → RUNNING → COMPLETED` (or
+`FAILED`), because that model is what a later asynchronous executor needs and retrofitting it would
+change the persisted shape.
+
+Stored results are **snapshots, never recomputed**. Fetching an analysis returns exactly the rows
+written at the time — if a consumer's source or a sample schema changes afterwards, history does not
+silently rewrite itself.
+
+Compatibility and operational risk stay in separate sections of the persisted record, exactly as
+they are in the standalone endpoints. There is no combined SAFE/UNSAFE field, in the database or in
+the API.
+
+### Database model
+
+```text
+analysis_run ──┬── analysis_compatibility_result ── analysis_compatibility_issue
+               └── analysis_risk_finding ──┬── analysis_finding_attribute
+                                           └── analysis_source_evidence
+```
+
+Everything is relational; no result blob. `analysis_run` also carries denormalized summary columns
+(version numbers, per-mode status, finding count, highest severity) so the history listing is a
+single query — safe because a run is immutable once written.
+
+### Failure handling
+
+A bad project or schema reference is rejected **before** a run is created, so it returns `404` and
+leaves no record. A failure *during* analysis persists a `FAILED` run and returns `500` with the
+`analysisId` in the problem response, so the failure is still inspectable.
+
 ## Change types
 
 | Change type | Reported when |
@@ -378,7 +424,7 @@ placeholders carrying only a `package-info.java` that states their responsibilit
 | `consumeranalysis` | Java AST analysis and the risk rules |
 | `risk` | Finding model, severity, operational-risk rollup |
 | `rollout` | Empty — rollout strategy and steps |
-| `history` | Empty — analysis orchestration and history |
+| `history` | Analysis orchestration and durable snapshots |
 | `samplesystem` | Loads built-in sample bundles from the classpath |
 
 Two rules hold as the codebase grows: `compatibility` and `consumeranalysis` will never depend on

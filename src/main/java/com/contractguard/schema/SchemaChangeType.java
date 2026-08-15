@@ -1,4 +1,4 @@
-package com.contractguard.schema;
+                                                                                                                    package com.contractguard.schema;
 
 /** The structural differences the Phase 1 diff engine reports. */
 public enum SchemaChangeType {

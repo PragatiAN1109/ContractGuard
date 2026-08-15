@@ -50,7 +50,7 @@ public abstract class AbstractIntegrationTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
-            statement.execute("TRUNCATE TABLE schema_version, project RESTART IDENTITY CASCADE");
+            statement.execute("TRUNCATE TABLE analysis_run, schema_version, project RESTART IDENTITY CASCADE");
         }
     }
 }

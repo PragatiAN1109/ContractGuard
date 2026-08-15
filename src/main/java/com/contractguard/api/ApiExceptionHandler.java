@@ -1,5 +1,6 @@
 package com.contractguard.api;
 
+import com.contractguard.history.AnalysisFailedException;
 import com.contractguard.schema.InvalidAvroSchemaException;
 import com.contractguard.shared.ConflictException;
 import com.contractguard.shared.NotFoundException;
@@ -49,6 +50,14 @@ public class ApiExceptionHandler {
     public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException e) {
         return problem(HttpStatus.BAD_REQUEST, "Invalid path parameter",
                 "'" + e.getName() + "' is not a valid " + e.getRequiredType().getSimpleName());
+    }
+
+    /** The run itself was persisted as FAILED; the id lets the client inspect it. */
+    @ExceptionHandler(AnalysisFailedException.class)
+    public ProblemDetail handleAnalysisFailed(AnalysisFailedException e) {
+        ProblemDetail problem = problem(HttpStatus.INTERNAL_SERVER_ERROR, "Analysis failed", e.getMessage());
+        problem.setProperty("analysisId", e.getAnalysisId().toString());
+        return problem;
     }
 
     /** Backstop for the unique constraints, which also guard against concurrent inserts. */
