@@ -26,10 +26,10 @@ Early development. What works today:
 - Compare two stored versions and get a deterministic, field-level structural diff
 - Analyse backward, forward and full structural compatibility between two stored versions
 - Analyse operational risk against Java consumer source, independently of compatibility
-- **Persist every analysis as a durable, auditable snapshot**
+- Persist every analysis as a durable, auditable snapshot
+- **Derive deterministic rollout guidance from a stored analysis**
 
-Not built yet: asynchronous execution, the remaining four consumer risk rules, rollout guidance,
-and the web UI.
+Not built yet: asynchronous execution, the remaining four consumer risk rules, and the web UI.
 
 ## Requirements
 
@@ -99,6 +99,7 @@ Flyway and the JPA mapping are genuinely exercised — they need a running Docke
 | `POST` | `/api/v1/projects/{projectId}/analyses` | Run and persist a full analysis |
 | `GET` | `/api/v1/projects/{projectId}/analyses` | Analysis history, newest first |
 | `GET` | `/api/v1/analyses/{analysisId}` | Full persisted snapshot |
+| `GET` | `/api/v1/analyses/{analysisId}/rollout` | Rollout guidance derived from that snapshot |
 | `GET` | `/api/v1/health` | Health check |
 
 Diff, compatibility and risk are deliberately **separate endpoints with separate payloads**. A diff
@@ -385,6 +386,46 @@ A bad project or schema reference is rejected **before** a run is created, so it
 leaves no record. A failure *during* analysis persists a `FAILED` run and returns `500` with the
 `analysisId` in the problem response, so the failure is still inspectable.
 
+## Rollout guidance
+
+`GET /api/v1/analyses/{analysisId}/rollout` answers "what sequence should an engineer consider?"
+It **interprets a stored analysis** — it never repeats the diff, compatibility check or source
+analysis, and never opens a consumer file. Guidance is derived on request rather than persisted,
+because the inputs are already immutable, so the same analysis always yields the same plan.
+
+Three strategies, and deliberately no `SAFE`/`UNSAFE`:
+
+| Strategy | When |
+|---|---|
+| `BLOCKED_BY_COMPATIBILITY` | BACKWARD fails — a target reader cannot decode existing data |
+| `CONSUMER_FIRST` | FORWARD fails and/or an operational-risk finding exists |
+| `NO_CONSTRAINT_IDENTIFIED` | Nothing fired. **Not** a statement that the change is safe |
+
+Steps are deduplicated by action and target — the sample stores two findings for one consumer and
+produces one `UPDATE_CONSUMER` step — and ordered deterministically, consumers sorted by name.
+
+### Example, from the sample analysis
+
+```json
+{
+  "strategy": "CONSUMER_FIRST",
+  "summary": "One affected consumer (order-notification-service) should be updated and deployed before producers use the target schema, and FORWARD compatibility also fails for older readers.",
+  "steps": [
+    {"order": 1, "action": "UPGRADE_CONSUMERS", "target": "consumers reading schema version 1",
+     "reason": "FORWARD compatibility fails: readers built from the source schema cannot decode records produced with schema version 2 (OrderEvent.customerEmail)..."},
+    {"order": 2, "action": "UPDATE_CONSUMER", "target": "order-notification-service",
+     "reason": "order-notification-service may interpret 'RETURNED' as 'CREATED' at OrderEvent.status; handle 'RETURNED' explicitly."},
+    {"order": 3, "action": "VERIFY_CONSUMER_DEPLOYMENT", "target": "order-notification-service"},
+    {"order": 4, "action": "DEPLOY_SCHEMA", "target": "schema version 2"},
+    {"order": 5, "action": "BEGIN_PRODUCING", "target": "schema version 2"}
+  ],
+  "limitations": ["...", "No implemented rule firing is not proof that the change is safe to deploy.", "..."]
+}
+```
+
+Symbol and consumer names come from the persisted finding attributes, never from hardcoded values.
+Every plan carries its limitations, and a non-COMPLETED analysis returns `409` rather than guidance.
+
 ## Change types
 
 | Change type | Reported when |
@@ -412,8 +453,7 @@ order, because output is sorted on its own content rather than on traversal orde
 
 ## Project layout
 
-Packages under `com.contractguard` mirror the intended module boundaries. Only `rollout` is still a
-placeholder, carrying just a `package-info.java` that states its responsibility.
+Packages under `com.contractguard` mirror the intended module boundaries; all now carry working code.
 
 | Package | Status |
 |---|---|
@@ -424,7 +464,7 @@ placeholder, carrying just a `package-info.java` that states its responsibility.
 | `compatibility` | Backward/forward/full verdicts via Avro |
 | `consumeranalysis` | Java AST analysis and the risk rules |
 | `risk` | Finding model, severity, operational-risk rollup |
-| `rollout` | Empty — rollout strategy and steps |
+| `rollout` | Rollout strategy and ordered steps |
 | `history` | Analysis orchestration and durable snapshots |
 | `samplesystem` | Loads built-in sample bundles from the classpath |
 
