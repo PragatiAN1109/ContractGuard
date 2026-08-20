@@ -1,5 +1,6 @@
 package com.contractguard.api;
 
+import com.contractguard.consumeranalysis.InvalidSourceBundleException;
 import com.contractguard.history.AnalysisFailedException;
 import com.contractguard.schema.InvalidAvroSchemaException;
 import com.contractguard.shared.ConflictException;
@@ -33,6 +34,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(InvalidAvroSchemaException.class)
     public ProblemDetail handleInvalidSchema(InvalidAvroSchemaException e) {
         return problem(HttpStatus.BAD_REQUEST, "Invalid Avro schema", e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidSourceBundleException.class)
+    public ProblemDetail handleInvalidSourceBundle(InvalidSourceBundleException e) {
+        return problem(HttpStatus.BAD_REQUEST, "Invalid consumer source upload", e.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

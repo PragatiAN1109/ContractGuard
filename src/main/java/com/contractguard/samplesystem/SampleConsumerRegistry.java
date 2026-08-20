@@ -4,6 +4,7 @@ import com.contractguard.consumeranalysis.ConsumerDefinition;
 import com.contractguard.consumeranalysis.ConsumerRegistry;
 import com.contractguard.consumeranalysis.ConsumerSourceFile;
 import com.contractguard.consumeranalysis.ConsumerSourceType;
+import com.contractguard.consumeranalysis.JavaSourceBundle;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -39,7 +40,7 @@ public class SampleConsumerRegistry implements ConsumerRegistry {
     }
 
     @Override
-    public List<ConsumerDefinition> findByConsumedSchema(String schemaFullName) {
+    public List<ConsumerDefinition> findByConsumedSchema(java.util.UUID projectId, String schemaFullName) {
         return consumers.stream()
                 .filter(consumer -> consumer.consumesSchema().equals(schemaFullName))
                 .sorted(Comparator.comparing(ConsumerDefinition::name))
@@ -72,11 +73,21 @@ public class SampleConsumerRegistry implements ConsumerRegistry {
                 for (JsonNode path : node.path("sourceFiles")) {
                     readSource(manifest, path.asText()).ifPresent(files::add);
                 }
+                // Bundled samples have no registry row; their revision is the hash of the
+                // bundled content, so provenance still identifies exactly what was analysed.
+                String revision = files.isEmpty()
+                        ? "empty"
+                        : JavaSourceBundle.from(files.stream()
+                                .map(f -> new JavaSourceBundle.UploadedFile(
+                                        f.path(), f.content().getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                                .toList()).revisionHash();
                 loaded.add(new ConsumerDefinition(
                         name,
                         node.path("description").asText(null),
                         node.path("consumesSchema").asText(),
                         ConsumerSourceType.BUILT_IN_SAMPLE,
+                        null,
+                        revision,
                         files));
             }
         } catch (IOException e) {

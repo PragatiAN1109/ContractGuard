@@ -32,7 +32,7 @@ public class ConsumerSourceController {
                 .parse(schemaVersionService.getById(projectId, schemaVersionId).getSchemaContent())
                 .getFullName();
 
-        var consumers = consumerRegistry.findByConsumedSchema(fullName).stream()
+        var consumers = consumerRegistry.findByConsumedSchema(projectId, fullName).stream()
                 .map(ConsumerSourceResponse::from)
                 .toList();
         return new ConsumerSourcesResponse(fullName, consumers.size(), consumers);

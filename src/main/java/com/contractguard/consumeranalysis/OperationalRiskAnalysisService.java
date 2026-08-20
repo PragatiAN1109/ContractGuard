@@ -43,7 +43,7 @@ public class OperationalRiskAnalysisService {
         Schema sourceSchema = validator.parse(comparison.source().getSchemaContent());
 
         List<ConsumerDefinition> consumers =
-                consumerRegistry.findByConsumedSchema(sourceSchema.getFullName());
+                consumerRegistry.findByConsumedSchema(projectId, sourceSchema.getFullName());
 
         List<String> warnings = new ArrayList<>();
         List<OperationalRiskFinding> findings = enumSemanticFallbackRule.apply(

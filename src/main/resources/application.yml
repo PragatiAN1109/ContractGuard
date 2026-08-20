@@ -24,6 +24,12 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
 
+  # Consumer-source uploads. Kept small: the endpoint is unauthenticated on a public demo.
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 8MB
+
   jackson:
     default-property-inclusion: non_null
     serialization:

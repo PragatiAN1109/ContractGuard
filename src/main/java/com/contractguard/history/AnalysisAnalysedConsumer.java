@@ -26,6 +26,13 @@ public class AnalysisAnalysedConsumer {
     @Column(name = "source_type", nullable = false, length = 32)
     private String sourceType;
 
+    /** Null for bundled samples, which have no registry row. */
+    @Column(name = "consumer_source_id")
+    private UUID consumerSourceId;
+
+    @Column(name = "revision_hash", length = 64)
+    private String revisionHash;
+
     @Column(name = "source_files", nullable = false, columnDefinition = "text")
     private String sourceFiles = "";
 
@@ -35,10 +42,12 @@ public class AnalysisAnalysedConsumer {
     protected AnalysisAnalysedConsumer() {
     }
 
-    public AnalysisAnalysedConsumer(String consumerName, String sourceType,
-                                    List<String> sourceFiles, int position) {
+    public AnalysisAnalysedConsumer(String consumerName, String sourceType, UUID consumerSourceId,
+                                    String revisionHash, List<String> sourceFiles, int position) {
         this.consumerName = consumerName;
         this.sourceType = sourceType;
+        this.consumerSourceId = consumerSourceId;
+        this.revisionHash = revisionHash;
         this.sourceFiles = String.join("\n", sourceFiles);
         this.position = position;
     }
@@ -49,6 +58,19 @@ public class AnalysisAnalysedConsumer {
 
     public String getSourceType() {
         return sourceType;
+    }
+
+    public UUID getConsumerSourceId() {
+        return consumerSourceId;
+    }
+
+    public String getRevisionHash() {
+        return revisionHash;
+    }
+
+    /** Short form for display; null when no revision was recorded. */
+    public String getShortRevision() {
+        return revisionHash == null ? null : revisionHash.substring(0, Math.min(12, revisionHash.length()));
     }
 
     public List<String> getSourceFiles() {

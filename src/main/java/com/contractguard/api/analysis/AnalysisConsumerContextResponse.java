@@ -14,12 +14,15 @@ public record AnalysisConsumerContextResponse(int consumerCount,
                                               List<String> sourceTypes,
                                               List<AnalysedConsumerSnapshot> consumers) {
 
-    public record AnalysedConsumerSnapshot(String name, String sourceType, List<String> sourceFiles) {}
+    public record AnalysedConsumerSnapshot(String name, String sourceType, String consumerSourceId,
+                                          String revision, List<String> sourceFiles) {}
 
     static AnalysisConsumerContextResponse from(AnalysisRun run) {
         List<AnalysedConsumerSnapshot> consumers = run.getAnalysedConsumers().stream()
                 .map(c -> new AnalysedConsumerSnapshot(
-                        c.getConsumerName(), c.getSourceType(), c.getSourceFiles()))
+                        c.getConsumerName(), c.getSourceType(),
+                        c.getConsumerSourceId() == null ? null : c.getConsumerSourceId().toString(),
+                        c.getShortRevision(), c.getSourceFiles()))
                 .toList();
         return new AnalysisConsumerContextResponse(
                 consumers.size(),

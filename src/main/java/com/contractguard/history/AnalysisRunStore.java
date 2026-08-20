@@ -60,8 +60,8 @@ public class AnalysisRunStore {
         int consumerPosition = 0;
         for (var consumer : risk.analysedConsumers()) {
             run.addAnalysedConsumer(new AnalysisAnalysedConsumer(
-                    consumer.name(), consumer.sourceType().name(),
-                    consumer.sourceFiles(), consumerPosition++));
+                    consumer.name(), consumer.sourceType().name(), consumer.sourceId(),
+                    consumer.revisionHash(), consumer.sourceFiles(), consumerPosition++));
         }
 
         run.markCompleted(

@@ -10,6 +10,8 @@ import java.util.List;
  */
 public record AnalysedConsumer(String name,
                                ConsumerSourceType sourceType,
+                               java.util.UUID sourceId,
+                               String revisionHash,
                                List<String> sourceFiles) {
 
     public AnalysedConsumer {
@@ -20,6 +22,8 @@ public record AnalysedConsumer(String name,
         return new AnalysedConsumer(
                 consumer.name(),
                 consumer.sourceType(),
+                consumer.sourceId(),
+                consumer.revisionHash(),
                 consumer.sourceFiles().stream().map(ConsumerSourceFile::path).sorted().toList());
     }
 }
