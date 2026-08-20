@@ -8,14 +8,36 @@ code that consumes the data. So a contract change can be structurally compatible
 downstream service — compatibility rules constrain **encoding and decoding**, while outages come
 from **application logic**.
 
-Adding an Avro enum symbol is the canonical example. If the enum declares a default, every
-compatibility check passes. A Java consumer whose `switch` has no branch for the new symbol still
-misbehaves.
+Adding an Avro enum symbol is the canonical example. An enum default may allow a reader to resolve
+a newly added symbol without any compatibility issue being reported for that field. The failure is
+not that a `switch` lacks the new case — it is that the new symbol never reaches the consumer at
+all: the old reader resolves it to the enum's default, and the consumer then executes whatever
+business behaviour it attaches to that fallback value, on records that meant something else.
 
 ContractGuard's eventual goal is to report two *independent* results for a proposed schema change —
 structural compatibility, and operational risk backed by evidence from consumer source — and never
 to merge them into a single verdict. It provides risk analysis and engineering guidance; it does not
 certify that a deployment is safe.
+
+## Architecture
+
+### Current architecture
+
+![ContractGuard current architecture](docs/img/architecture-current-light.png)
+
+**Legend** — blue: structural contract analysis · orange: operational risk analysis · grey: API,
+orchestration, history and storage · dashed: inputs and planned components.
+
+Structural compatibility and operational risk are computed by independent engines and stored as
+separate result sets on one `AnalysisRun`. Java consumer source feeds only the operational-risk
+branch — it is never an input to Avro compatibility.
+
+### Planned architecture evolution
+
+![ContractGuard planned architecture evolution](docs/img/architecture-planned-light.png)
+
+Infrastructure is introduced only where a concrete scalability or reliability need justifies it.
+Per-component rationale and the editable Mermaid source: [`docs/architecture.md`](docs/architecture.md).
 
 ## Status
 
@@ -27,9 +49,40 @@ Early development. What works today:
 - Analyse backward, forward and full structural compatibility between two stored versions
 - Analyse operational risk against Java consumer source, independently of compatibility
 - Persist every analysis as a durable, auditable snapshot
-- **Derive deterministic rollout guidance from a stored analysis**
+- Derive deterministic rollout guidance from a stored analysis
+- **A React + TypeScript UI covering the full workflow**
 
-Not built yet: asynchronous execution, the remaining four consumer risk rules, and the web UI.
+Not built yet: asynchronous execution and the remaining consumer risk rules.
+
+## Web UI
+
+A React + TypeScript UI covers the whole workflow: create a project, store schema versions, run an
+analysis, and read the persisted result.
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+Open <http://localhost:5173>. The dev server proxies `/api` to the backend on `8081`, so the browser
+stays on one origin and the backend needs no CORS configuration. Point it elsewhere with
+`CONTRACTGUARD_API_URL`.
+
+With Docker Compose the UI is served by nginx on `${CONTRACTGUARD_WEB_PORT:-5173}`, proxying `/api`
+to the backend container.
+
+| Screen | Purpose |
+|---|---|
+| Projects | Project list and creation |
+| Project | Schema versions, run an analysis, analysis history |
+| Analysis | Structural compatibility, operational risk with source evidence, rollout guidance |
+
+The analysis screen keeps compatibility and operational risk in separate sections and never renders
+a combined safe/unsafe verdict. Opening a historical analysis reads the stored snapshot — it does
+not re-run anything.
+
+```bash
+cd frontend && npm test
+```
 
 ## Requirements
 

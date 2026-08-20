@@ -1,0 +1,72 @@
+%%{init: {"theme":"base","themeVariables":{"primaryColor":"#f5f5f5","primaryTextColor":"#202124","primaryBorderColor":"#9e9e9e","lineColor":"#607d8b","clusterBkg":"#ffffff","clusterBorder":"#b0bec5","fontSize":"14px"}}}%%
+flowchart LR
+
+  subgraph INPUTS["Inputs"]
+    direction TB
+    AVRO["Avro Contracts<br/>Baseline V1 + Proposed V2"]
+    JSRC["Java Consumer Source<br/>registered services"]
+  end
+
+  subgraph CG["ContractGuard — Spring Boot Modular Monolith"]
+    direction TB
+
+    API["REST API<br/>Projects · Schema Versions · Analyses"]
+    ORCH["Analysis Orchestrator<br/>executes one AnalysisRun"]
+    API --> ORCH
+
+    subgraph STRUCT["Structural Contract Analysis"]
+      direction TB
+      DIFF["Schema Diff Engine<br/>fields · enums · defaults · optionality"]
+      COMPAT["Avro Compatibility Engine<br/>BACKWARD · FORWARD · FULL"]
+      DIFF --> COMPAT
+    end
+
+    subgraph OPS["Operational Risk Analysis"]
+      direction TB
+      REG["Consumer Registry"]
+      AST["JavaParser AST Scanner"]
+      RULES["Risk Rules<br/>ENUM_SEMANTIC_FALLBACK_RISK"]
+      EV["Source Evidence<br/>service · file · line · code"]
+      REG --> AST --> RULES --> EV
+    end
+
+    CRES["Structural<br/>Compatibility Result"]
+    ORES["Operational<br/>Findings + Evidence"]
+
+    HIST["AnalysisRun / History<br/>compatibility snapshot<br/>risk findings + evidence<br/>status + timestamps"]
+    PG[("PostgreSQL<br/>durable analysis history")]
+  end
+
+  EXAMPLE["Example<br/>RETURNED added<br/>Avro: compatible at this field<br/>Consumer: RETURNED → CREATED fallback<br/>Evidence: case CREATED → sendNewOrderNotification"]
+  THESIS["Compatibility PASS ≠ operational safety"]
+
+  AVRO --> API
+  JSRC --> REG
+  ORCH -- "V1 + V2" --> DIFF
+  ORCH -- "V1 + V2 + source" --> REG
+  COMPAT --> CRES
+  EV --> ORES
+  CRES --> HIST
+  ORES --> HIST
+  HIST --> PG
+  ORES -.- EXAMPLE
+  HIST -.- THESIS
+
+  classDef neutral fill:#f5f5f5,stroke:#5f6368,stroke-width:1px,color:#202124
+  classDef structural fill:#e8f0fe,stroke:#1565c0,stroke-width:1px,color:#0d47a1
+  classDef operational fill:#fff4e5,stroke:#e65100,stroke-width:1px,color:#a84300
+  classDef storage fill:#eceff1,stroke:#455a64,stroke-width:1px,color:#263238
+  classDef input fill:#ffffff,stroke:#78909c,stroke-width:1px,color:#202124
+  classDef callout fill:#fffde7,stroke:#f9a825,stroke-width:1px,color:#7a5c00
+
+  class API,ORCH,HIST neutral
+  class DIFF,COMPAT,CRES structural
+  class REG,AST,RULES,EV,ORES operational
+  class PG storage
+  class AVRO,JSRC input
+  class EXAMPLE,THESIS callout
+
+  style CG fill:#ffffff,stroke:#37474f,stroke-width:2px
+  style INPUTS fill:#ffffff,stroke:#78909c,stroke-dasharray:4 4
+  style STRUCT fill:#f4f8fe,stroke:#1565c0,stroke-width:2px
+  style OPS fill:#fff9f2,stroke:#e65100,stroke-width:2px

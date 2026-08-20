@@ -32,5 +32,14 @@ services:
     ports:
       - "${CONTRACTGUARD_PORT:-8081}:8080"
 
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      - app
+    ports:
+      - "${CONTRACTGUARD_WEB_PORT:-5173}:80"
+
 volumes:
   contractguard-db:
