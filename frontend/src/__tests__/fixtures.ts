@@ -40,9 +40,30 @@ export const analysisRun: AnalysisRun = {
       issues: [],
     },
   },
+  consumerAnalysis: {
+    consumerCount: 3,
+    sourceTypes: ['BUILT_IN_SAMPLE'],
+    consumers: [
+      {
+        name: 'order-analytics-service',
+        sourceType: 'BUILT_IN_SAMPLE',
+        sourceFiles: ['order-analytics-service/FulfilmentMetricsCollector.java'],
+      },
+      {
+        name: 'order-notification-service',
+        sourceType: 'BUILT_IN_SAMPLE',
+        sourceFiles: ['order-notification-service/OrderStatusHandler.java'],
+      },
+      {
+        name: 'order-returns-service',
+        sourceType: 'BUILT_IN_SAMPLE',
+        sourceFiles: ['order-returns-service/ReturnsProcessor.java'],
+      },
+    ],
+  },
   operationalRisk: {
     overallSeverity: 'HIGH',
-    findingCount: 1,
+    findingCount: 2,
     findings: [
       {
         ruleId: 'ENUM_SEMANTIC_FALLBACK_RISK',
@@ -60,6 +81,26 @@ export const analysisRun: AnalysisRun = {
           filePath: 'order-notification-service/OrderStatusHandler.java',
           line: 20,
           snippet: 'case CREATED -> sendNewOrderNotification(order);',
+        },
+        reason: "The proposed schema adds 'RETURNED' to OrderEvent.status.",
+      },
+      {
+        // Same rule and consumer, a second distinct source location — mirrors the real sample.
+        ruleId: 'ENUM_SEMANTIC_FALLBACK_RISK',
+        severity: 'HIGH',
+        consumer: 'order-notification-service',
+        schemaPath: 'OrderEvent.status',
+        attributes: {
+          enumName: 'OrderStatus',
+          newSymbol: 'RETURNED',
+          fallbackSymbol: 'CREATED',
+          usageKind: 'EQUALITY_COMPARISON',
+        },
+        evidence: {
+          sourceFile: 'OrderStatusHandler.java',
+          filePath: 'order-notification-service/OrderStatusHandler.java',
+          line: 34,
+          snippet: 'return order.getStatus() == OrderStatus.CREATED;',
         },
         reason: "The proposed schema adds 'RETURNED' to OrderEvent.status.",
       },

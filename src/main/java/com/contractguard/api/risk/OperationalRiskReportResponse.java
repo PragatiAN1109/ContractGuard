@@ -1,5 +1,6 @@
 package com.contractguard.api.risk;
 
+import com.contractguard.api.consumersource.AnalysedConsumerResponse;
 import com.contractguard.api.schema.SchemaVersionSummary;
 import com.contractguard.consumeranalysis.OperationalRiskReport;
 
@@ -16,7 +17,7 @@ public record OperationalRiskReportResponse(UUID projectId,
                                             String overallSeverity,
                                             int findingCount,
                                             List<OperationalRiskFindingResponse> findings,
-                                            List<String> analysedConsumers,
+                                            List<AnalysedConsumerResponse> analysedConsumers,
                                             List<String> warnings) {
 
     public static OperationalRiskReportResponse from(OperationalRiskReport report) {
@@ -30,7 +31,7 @@ public record OperationalRiskReportResponse(UUID projectId,
                 report.overallSeverity().name(),
                 findings.size(),
                 findings,
-                report.analysedConsumers(),
+                report.analysedConsumers().stream().map(AnalysedConsumerResponse::from).toList(),
                 report.warnings());
     }
 }

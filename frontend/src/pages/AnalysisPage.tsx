@@ -6,7 +6,72 @@ import { ErrorPanel } from '../components/ErrorPanel';
 import { Loading } from '../components/Loading';
 import { Section } from '../components/Section';
 import { CompatBadge, RunStatusBadge, SeverityBadge } from '../components/StatusBadge';
-import type { CompatibilityModeResult, RiskFinding, RolloutPlan } from '../api/types';
+import type {
+  CompatibilityModeResult,
+  ConsumerAnalysisContext,
+  RiskFinding,
+  RolloutPlan,
+} from '../api/types';
+
+const SOURCE_TYPE_LABEL: Record<string, string> = {
+  BUILT_IN_SAMPLE: 'built-in sample',
+};
+
+/** Groups findings by consumer while preserving backend ordering within each group. */
+function groupByConsumer(findings: RiskFinding[]): Array<[string, RiskFinding[]]> {
+  const groups = new Map<string, RiskFinding[]>();
+  findings.forEach((finding) => {
+    const existing = groups.get(finding.consumer);
+    if (existing) existing.push(finding);
+    else groups.set(finding.consumer, [finding]);
+  });
+  return [...groups.entries()];
+}
+
+function ConsumerContext({ context }: { context: ConsumerAnalysisContext }) {
+  if (context.consumerCount === 0) {
+    return (
+      <p className="muted">
+        No consumer source was registered for this schema, so no operational-risk rule could run.
+        A clean risk result here means nothing was examined.
+      </p>
+    );
+  }
+
+  const sourceLabel = context.sourceTypes
+    .map((type) => SOURCE_TYPE_LABEL[type] ?? type)
+    .join(', ');
+
+  return (
+    <>
+      <p className="context-lead">
+        {`Operational-risk analysis used ${context.consumerCount} registered consumer` +
+          `${context.consumerCount === 1 ? ' source' : ' sources'} (${sourceLabel}).`}
+      </p>
+      <ul className="consumer-list">
+        {context.consumers.map((consumer) => (
+          <li key={consumer.name}>
+            <div className="consumer-head">
+              <span className="consumer">{consumer.name}</span>
+              <span className="tag tag-neutral">{SOURCE_TYPE_LABEL[consumer.sourceType] ?? consumer.sourceType}</span>
+            </div>
+            <ul className="file-list">
+              {consumer.sourceFiles.map((file) => (
+                <li key={file} className="muted small mono">
+                  {file}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+      <p className="muted small">
+        ContractGuard analyses only consumer source that is registered with it. It does not scan
+        arbitrary repositories today.
+      </p>
+    </>
+  );
+}
 
 const STRATEGY_LABEL: Record<RolloutPlan['strategy'], string> = {
   CONSUMER_FIRST: 'Consumer first',
@@ -103,6 +168,7 @@ export function AnalysisPage() {
 
   const run = analysis.data;
   const risk = run.operationalRisk;
+  const consumerGroups = groupByConsumer(risk.findings);
 
   return (
     <div className="stack">
@@ -140,7 +206,7 @@ export function AnalysisPage() {
       <Section
         title="Structural compatibility"
         accent="structural"
-        subtitle="Derived from the two schemas alone. Says nothing about consumer behaviour."
+        subtitle="Derived from the two schemas only."
       >
         <div className="modes">
           <CompatibilityMode result={run.compatibility.backward} />
@@ -150,9 +216,17 @@ export function AnalysisPage() {
       </Section>
 
       <Section
+        title="Consumer analysis context"
+        accent="risk"
+        subtitle="Which consumer source took part in this analysis, recorded at the time it ran."
+      >
+        <ConsumerContext context={run.consumerAnalysis} />
+      </Section>
+
+      <Section
         title="Operational risk"
         accent="risk"
-        subtitle="Derived from consumer source. Independent of the compatibility result above."
+        subtitle="Derived from registered consumer source and schema-change context. Independent of the compatibility result above."
       >
         <div className="risk-summary">
           <div>
@@ -170,15 +244,32 @@ export function AnalysisPage() {
             No implemented risk rule fired. That is not proof that the change is safe to deploy.
           </p>
         ) : (
-          <div className="findings">
-            {risk.findings.map((finding, index) => (
-              <Finding key={`${finding.ruleId}-${index}`} finding={finding} />
+          <>
+            <p className="muted small">
+              {`${risk.findingCount} evidence-backed finding${risk.findingCount === 1 ? '' : 's'}` +
+                ` in ${consumerGroups.length} affected consumer${consumerGroups.length === 1 ? '' : 's'}.` +
+                ' Each finding is a distinct source location, not a duplicate record.'}
+            </p>
+            {consumerGroups.map(([consumer, findings]) => (
+              <div key={consumer} className="consumer-group">
+                <h3 className="consumer-group-head">
+                  <span className="consumer">{consumer}</span>
+                  <span className="muted small">
+                    {findings.length} evidence location{findings.length === 1 ? '' : 's'}
+                  </span>
+                </h3>
+                <div className="findings">
+                  {findings.map((finding, index) => (
+                    <Finding key={`${finding.ruleId}-${index}`} finding={finding} />
+                  ))}
+                </div>
+              </div>
             ))}
-          </div>
+          </>
         )}
       </Section>
 
-      <Section title="Rollout guidance" accent="neutral" subtitle="Derived from the stored snapshot.">
+      <Section title="Rollout guidance" accent="neutral" subtitle="Derived from the persisted analysis snapshot.">
         {rollout.loading && <Loading label="Loading rollout guidance" />}
         {rollout.error && (
           <>

@@ -92,6 +92,11 @@ public class AnalysisRun {
     @OrderBy("position ASC")
     private List<AnalysisRiskFinding> findings = new ArrayList<>();
 
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "analysis_run_id", nullable = false)
+    @OrderBy("position ASC")
+    private List<AnalysisAnalysedConsumer> analysedConsumers = new ArrayList<>();
+
     protected AnalysisRun() {
     }
 
@@ -137,6 +142,10 @@ public class AnalysisRun {
 
     void addFinding(AnalysisRiskFinding finding) {
         findings.add(finding);
+    }
+
+    void addAnalysedConsumer(AnalysisAnalysedConsumer consumer) {
+        analysedConsumers.add(consumer);
     }
 
     private void requireStatus(AnalysisStatus expected) {
@@ -220,5 +229,9 @@ public class AnalysisRun {
 
     public List<AnalysisRiskFinding> getFindings() {
         return List.copyOf(findings);
+    }
+
+    public List<AnalysisAnalysedConsumer> getAnalysedConsumers() {
+        return List.copyOf(analysedConsumers);
     }
 }

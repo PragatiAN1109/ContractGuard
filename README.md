@@ -19,6 +19,23 @@ structural compatibility, and operational risk backed by evidence from consumer 
 to merge them into a single verdict. It provides risk analysis and engineering guidance; it does not
 certify that a deployment is safe.
 
+## How consumer analysis works today
+
+Operational-risk findings come from **registered** consumer source, not from scanning the internet
+or your repositories.
+
+* A consumer is registered by declaring the Avro record it reads plus the Java files to analyse.
+* The built-in e-commerce sample ships three registered Java consumers under
+  [`samples/ecommerce-order/consumers/`](src/main/resources/samples/ecommerce-order/consumers/).
+* Only consumers registered for the analysed schema are examined. Anything unregistered is
+  invisible to the analysis, so a clean risk result means "nothing registered was found to be at
+  risk" — not "nothing is at risk".
+* Every analysis records which consumers it examined, and the UI shows that under **Consumer
+  analysis context**, so a `NONE` severity stays interpretable.
+
+ContractGuard does **not** clone repositories, integrate with GitHub, or discover consumers at
+runtime. Those are future work.
+
 ## Architecture
 
 ### Current architecture
@@ -84,6 +101,62 @@ not re-run anything.
 cd frontend && npm test
 ```
 
+### Screens
+
+The project page shows stored schema versions and, once a source version is selected, exactly which
+registered consumer sources an analysis would examine:
+
+![ContractGuard project screen](docs/img/ui-project.png)
+
+The analysis screen keeps the three results in separate sections — structural compatibility,
+operational risk with source evidence, and rollout guidance:
+
+![ContractGuard analysis screen](docs/img/ui-analysis.png)
+
+### Two-minute demo
+
+1. Open the UI and create a project.
+2. Click **Load sample schemas (order-v1 → order-v2)** — this posts the repository's real sample
+   files through the API; nothing is mocked.
+3. Select `v1` as source and `v2` as target. The **consumer sources** panel lists the three
+   registered consumers that will be scanned.
+4. Click **Run analysis**.
+5. Read the result: `BACKWARD PASS`, `FORWARD FAIL` at `OrderEvent.customerEmail`, `FULL FAIL` —
+   and, independently, operational risk `HIGH` with two evidence locations in
+   `order-notification-service`.
+6. Note what compatibility did *not* flag: the new `RETURNED` symbol raises no issue at
+   `OrderEvent.status`, because the enum default absorbs it.
+7. Read the rollout guidance: `CONSUMER_FIRST`, five ordered steps, with limitations stated.
+8. Reload the page or restart the stack, then reopen the analysis from history. It is served from
+   the stored snapshot — no re-analysis happens.
+
+## Deploying a public demo
+
+The simplest v0.1 that preserves the current modular-monolith architecture:
+
+| Piece | Recommendation |
+|---|---|
+| Frontend | Serve the existing nginx container, or upload `frontend/dist` to any static host |
+| Backend | One container from the existing `Dockerfile` on a small container host (Render, Fly.io, Railway, or a single VM) |
+| Database | Managed PostgreSQL from the same provider |
+
+No queue, cache, search cluster or orchestrator is needed to deploy this. Set
+`CONTRACTGUARD_DB_URL`, `CONTRACTGUARD_DB_USERNAME`, `CONTRACTGUARD_DB_PASSWORD` and
+`CONTRACTGUARD_BIND_ADDRESS=0.0.0.0` in the backend service; point the frontend's `/api` proxy at
+the backend URL. Copy [`.env.example`](.env.example) to `.env` for local runs.
+
+**Before exposing it publicly**, note that this is a portfolio demo, not a multi-tenant service:
+
+* There is **no authentication** — anyone reaching the URL can create projects and run analyses.
+* Analysis is CPU-bound and synchronous, with no rate limiting, so it is trivially expensive to
+  abuse. Put it behind a platform rate limit, or keep the URL unadvertised.
+* Change `CONTRACTGUARD_DB_PASSWORD` from the development default.
+* Stack traces and messages are already suppressed (`include-stacktrace: never`), and only
+  `/actuator/health` and `/actuator/info` are exposed with `show-details: never`.
+* Schema bodies are capped at 256 KB by request validation.
+
+**Deployed URL:** _not yet deployed._
+
 ## Requirements
 
 * JDK 21 and Docker — or just Docker, if you use Compose
@@ -146,6 +219,7 @@ Flyway and the JPA mapping are genuinely exercised — they need a running Docke
 | `POST` | `/api/v1/projects/{projectId}/schemas` | Store a schema version |
 | `GET` | `/api/v1/projects/{projectId}/schemas` | List schema versions |
 | `GET` | `/api/v1/projects/{projectId}/schemas/{schemaVersionId}` | Get a schema version |
+| `GET` | `/api/v1/projects/{projectId}/schemas/{schemaVersionId}/consumer-sources` | Registered consumers an analysis would examine |
 | `GET` | `/api/v1/projects/{projectId}/schemas/{sourceId}/diff/{targetId}` | Structural diff of two versions |
 | `GET` | `/api/v1/projects/{projectId}/schemas/{sourceId}/compatibility/{targetId}` | Compatibility analysis of two versions |
 | `GET` | `/api/v1/projects/{projectId}/schemas/{sourceId}/risk/{targetId}` | Operational risk against consumer source |

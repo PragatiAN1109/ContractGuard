@@ -54,7 +54,8 @@ public class OperationalRiskAnalysisService {
                 comparison.target(),
                 findings.isEmpty() ? RiskSeverity.NONE : highest(findings),
                 findings,
-                consumers.stream().map(ConsumerDefinition::name).sorted().toList(),
+                consumers.stream().map(AnalysedConsumer::from)
+                        .sorted(Comparator.comparing(AnalysedConsumer::name)).toList(),
                 warnings.stream().sorted().toList());
     }
 

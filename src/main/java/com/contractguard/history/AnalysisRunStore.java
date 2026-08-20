@@ -57,6 +57,13 @@ public class AnalysisRunStore {
             run.addFinding(toFinding(finding, findingPosition++));
         }
 
+        int consumerPosition = 0;
+        for (var consumer : risk.analysedConsumers()) {
+            run.addAnalysedConsumer(new AnalysisAnalysedConsumer(
+                    consumer.name(), consumer.sourceType().name(),
+                    consumer.sourceFiles(), consumerPosition++));
+        }
+
         run.markCompleted(
                 compatibility.backward().status().name(),
                 compatibility.forward().status().name(),
@@ -77,6 +84,7 @@ public class AnalysisRunStore {
         AnalysisRun run = repository.findById(analysisId)
                 .orElseThrow(() -> new NotFoundException("Analysis " + analysisId + " not found"));
         run.getCompatibilityResults().forEach(result -> result.getIssues().size());
+        run.getAnalysedConsumers().size();
         run.getFindings().forEach(finding -> {
             finding.getAttributes().size();
             if (finding.getEvidence() != null) {

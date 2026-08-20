@@ -197,3 +197,48 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--s
 .field-errors { margin: 8px 0 0; padding-left: 20px; font-size: 13px; }
 
 .empty { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+
+/* Consumer analysis context */
+.context-lead {
+  margin: 0 0 0.75rem;
+}
+
+.consumer-list,
+.file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.consumer-list > li {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.consumer-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.35rem;
+}
+
+.file-list li {
+  padding-left: 0.25rem;
+}
+
+/* Findings grouped by consumer */
+.consumer-group {
+  margin-top: 1rem;
+}
+
+.consumer-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border);
+}

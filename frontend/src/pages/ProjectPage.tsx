@@ -10,6 +10,75 @@ import { ErrorPanel } from '../components/ErrorPanel';
 import { Loading } from '../components/Loading';
 import { CompatBadge, RunStatusBadge, SeverityBadge } from '../components/StatusBadge';
 
+/**
+ * Pre-flight view of the consumer sources an analysis would examine, so operational-risk findings
+ * are never a surprise. Reads the registry, which is why it is labelled as "will be".
+ */
+function ConsumerSourcePreview({
+  projectId,
+  schemaVersionId,
+}: {
+  projectId: string;
+  schemaVersionId: string;
+}) {
+  const sources = useAsync(
+    () =>
+      schemaVersionId
+        ? schemasApi.consumerSources(projectId, schemaVersionId)
+        : Promise.resolve(null),
+    [projectId, schemaVersionId],
+  );
+
+  if (!schemaVersionId) {
+    return (
+      <p className="muted small">
+        Select a source version to see which registered consumer sources would be analysed.
+      </p>
+    );
+  }
+  if (sources.loading) return <p className="muted small">Loading consumer sources…</p>;
+  if (sources.error || !sources.data) return null;
+
+  const { consumerCount, consumers, schemaFullName } = sources.data;
+
+  return (
+    <div className="preflight">
+      <span className="stat-label">Consumer sources included in operational-risk analysis</span>
+      {consumerCount === 0 ? (
+        <p className="muted small">
+          {`No consumer source is registered for ${schemaFullName}. Operational-risk analysis will ` +
+            'report nothing, which is not the same as finding nothing.'}
+        </p>
+      ) : (
+        <>
+          <p className="muted small">
+            {`${consumerCount} registered consumer source${consumerCount === 1 ? '' : 's'} for ` +
+              `${schemaFullName} will be scanned by the rule ENUM_SEMANTIC_FALLBACK_RISK.`}
+          </p>
+          <ul className="consumer-list">
+            {consumers.map((consumer) => (
+              <li key={consumer.name}>
+                <div className="consumer-head">
+                  <span className="consumer">{consumer.name}</span>
+                  <span className="tag tag-neutral">built-in sample</span>
+                </div>
+                {consumer.description && <p className="muted small">{consumer.description}</p>}
+                <ul className="file-list">
+                  {consumer.sourceFiles.map((file) => (
+                    <li key={file} className="muted small mono">
+                      {file}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function ProjectPage() {
   const { projectId = '' } = useParams();
   const navigate = useNavigate();
@@ -195,6 +264,8 @@ export function ProjectPage() {
             {busy === 'analysis' ? 'Analysing…' : 'Run analysis'}
           </button>
         </form>
+
+        <ConsumerSourcePreview projectId={projectId} schemaVersionId={source} />
       </section>
 
       <section className="section section-neutral">

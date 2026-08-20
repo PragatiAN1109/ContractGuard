@@ -1,5 +1,5 @@
 import { API_BASE, http } from './client';
-import type { SchemaVersion, SchemaVersionSummary } from './types';
+import type { ConsumerSources, SchemaVersion, SchemaVersionSummary } from './types';
 
 export const schemasApi = {
   list: (projectId: string) =>
@@ -10,4 +10,10 @@ export const schemasApi = {
 
   create: (projectId: string, schemaContent: string) =>
     http.post<SchemaVersion>(`${API_BASE}/projects/${projectId}/schemas`, { schemaContent }),
+
+  /** Which registered consumers an analysis of this schema would examine. */
+  consumerSources: (projectId: string, schemaVersionId: string) =>
+    http.get<ConsumerSources>(
+      `${API_BASE}/projects/${projectId}/schemas/${schemaVersionId}/consumer-sources`,
+    ),
 };

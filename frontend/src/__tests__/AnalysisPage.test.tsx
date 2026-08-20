@@ -46,17 +46,18 @@ describe('AnalysisPage', () => {
     vi.mocked(rolloutApi.get).mockResolvedValue(rolloutPlan);
     renderPage();
 
-    expect(await screen.findByText('ENUM_SEMANTIC_FALLBACK_RISK')).toBeInTheDocument();
+    // Two findings share the rule id; both are legitimate, distinct evidence locations.
+    expect((await screen.findAllByText('ENUM_SEMANTIC_FALLBACK_RISK')).length).toBe(2);
     // Also named in the rollout steps, so scope to the finding's own element.
     expect(document.querySelector('.finding .consumer')).toHaveTextContent(
       'order-notification-service',
     );
-    // Once as the overall severity, once on the finding itself.
-    expect(screen.getAllByText('HIGH')).toHaveLength(2);
-    expect(screen.getByText('OrderEvent.status')).toBeInTheDocument();
-    // RETURNED -> CREATED fallback is spelled out.
-    expect(screen.getByText('RETURNED')).toBeInTheDocument();
-    expect(screen.getByText('CREATED')).toBeInTheDocument();
+    // Once as the overall severity, once per finding.
+    expect(screen.getAllByText('HIGH')).toHaveLength(3);
+    expect(screen.getAllByText('OrderEvent.status').length).toBeGreaterThanOrEqual(1);
+    // RETURNED -> CREATED fallback is spelled out on each finding.
+    expect(screen.getAllByText('RETURNED').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('CREATED').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders source evidence with file, line and code excerpt', async () => {
@@ -68,9 +69,38 @@ describe('AnalysisPage', () => {
     expect(
       screen.getByText('case CREATED -> sendNewOrderNotification(order);'),
     ).toBeInTheDocument();
+    // The path appears both in the consumer-analysis context list and under the evidence block.
     expect(
-      screen.getByText('order-notification-service/OrderStatusHandler.java'),
+      screen.getAllByText('order-notification-service/OrderStatusHandler.java').length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+
+  it('states which registered consumer sources were analysed', async () => {
+    vi.mocked(analysesApi.get).mockResolvedValue(analysisRun);
+    vi.mocked(rolloutApi.get).mockResolvedValue(rolloutPlan);
+    renderPage();
+
+    expect(await screen.findByText('Consumer analysis context')).toBeInTheDocument();
+    expect(
+      screen.getByText(/registered consumer sources \(built-in sample\)/),
     ).toBeInTheDocument();
+    expect(screen.getByText('order-analytics-service')).toBeInTheDocument();
+    expect(screen.getByText('order-returns-service')).toBeInTheDocument();
+    expect(
+      screen.getByText(/does not scan arbitrary repositories today/),
+    ).toBeInTheDocument();
+  });
+
+  it('presents two findings as distinct evidence locations in one consumer', async () => {
+    vi.mocked(analysesApi.get).mockResolvedValue(analysisRun);
+    vi.mocked(rolloutApi.get).mockResolvedValue(rolloutPlan);
+    renderPage();
+
+    expect(
+      await screen.findByText(/2 evidence-backed findings in 1 affected consumer/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/not a duplicate record/)).toBeInTheDocument();
+    expect(screen.getByText('2 evidence locations')).toBeInTheDocument();
   });
 
   it('renders ordered rollout steps and limitations', async () => {

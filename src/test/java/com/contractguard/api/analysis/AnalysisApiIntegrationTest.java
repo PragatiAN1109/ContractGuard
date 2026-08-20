@@ -65,6 +65,14 @@ class AnalysisApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.operationalRisk.findings[0].ruleId")
                         .value("ENUM_SEMANTIC_FALLBACK_RISK"))
 
+                // The snapshot records what was examined, not just what was found.
+                .andExpect(jsonPath("$.consumerAnalysis.consumerCount").value(3))
+                .andExpect(jsonPath("$.consumerAnalysis.sourceTypes[0]").value("BUILT_IN_SAMPLE"))
+                .andExpect(jsonPath("$.consumerAnalysis.consumers[0].name")
+                        .value("order-analytics-service"))
+                .andExpect(jsonPath("$.consumerAnalysis.consumers[0].sourceFiles[0]")
+                        .value("order-analytics-service/FulfilmentMetricsCollector.java"))
+
                 .andExpect(jsonPath("$.createdAt").isNotEmpty())
                 .andExpect(jsonPath("$.startedAt").isNotEmpty())
                 .andExpect(jsonPath("$.completedAt").isNotEmpty())
@@ -144,6 +152,33 @@ class AnalysisApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.operationalRisk.findings[0].evidence.snippet")
                         .value("STORED SNAPSHOT MARKER"));
+    }
+
+    @Test
+    @DisplayName("analysed consumers survive persistence and reload")
+    void analysedConsumersSurviveReload() throws Exception {
+        String analysisId = runAnalysis(v1Id, v2Id);
+
+        assertThat(count("analysis_analysed_consumer", "analysis_run_id", analysisId)).isEqualTo(3);
+
+        mockMvc.perform(get("/api/v1/analyses/{id}", analysisId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.consumerAnalysis.consumerCount").value(3))
+                .andExpect(jsonPath("$.consumerAnalysis.consumers[1].name")
+                        .value("order-notification-service"))
+                .andExpect(jsonPath("$.consumerAnalysis.consumers[1].sourceType")
+                        .value("BUILT_IN_SAMPLE"));
+    }
+
+    @Test
+    @DisplayName("consumer sources can be previewed before running an analysis")
+    void consumerSourcesPreview() throws Exception {
+        mockMvc.perform(get("/api/v1/projects/{p}/schemas/{s}/consumer-sources", projectId, v1Id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.schemaFullName").value("com.example.orders.OrderEvent"))
+                .andExpect(jsonPath("$.consumerCount").value(3))
+                .andExpect(jsonPath("$.consumers[0].sourceType").value("BUILT_IN_SAMPLE"))
+                .andExpect(jsonPath("$.consumers[0].sourceFiles").isNotEmpty());
     }
 
     @Test

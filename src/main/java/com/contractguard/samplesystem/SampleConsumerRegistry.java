@@ -3,6 +3,7 @@ package com.contractguard.samplesystem;
 import com.contractguard.consumeranalysis.ConsumerDefinition;
 import com.contractguard.consumeranalysis.ConsumerRegistry;
 import com.contractguard.consumeranalysis.ConsumerSourceFile;
+import com.contractguard.consumeranalysis.ConsumerSourceType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -75,6 +76,7 @@ public class SampleConsumerRegistry implements ConsumerRegistry {
                         name,
                         node.path("description").asText(null),
                         node.path("consumesSchema").asText(),
+                        ConsumerSourceType.BUILT_IN_SAMPLE,
                         files));
             }
         } catch (IOException e) {

@@ -79,9 +79,11 @@ class OperationalRiskApiIntegrationTest extends AbstractIntegrationTest {
     void safeConsumersAreNotFlagged() throws Exception {
         String body = riskBody();
 
-        assertThat(JsonPath.<java.util.List<String>>read(body, "$.analysedConsumers"))
+        assertThat(JsonPath.<java.util.List<String>>read(body, "$.analysedConsumers[*].name"))
                 .containsExactly("order-analytics-service", "order-notification-service",
                         "order-returns-service");
+        assertThat(JsonPath.<java.util.List<String>>read(body, "$.analysedConsumers[*].sourceType"))
+                .containsOnly("BUILT_IN_SAMPLE");
         assertThat(JsonPath.<java.util.List<String>>read(body, "$.findings[*].consumer"))
                 .containsOnly("order-notification-service");
     }

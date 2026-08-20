@@ -17,7 +17,7 @@ public record OperationalRiskReport(SchemaVersion source,
                                     SchemaVersion target,
                                     RiskSeverity overallSeverity,
                                     List<OperationalRiskFinding> findings,
-                                    List<String> analysedConsumers,
+                                    List<AnalysedConsumer> analysedConsumers,
                                     List<String> warnings) {
 
     public OperationalRiskReport {

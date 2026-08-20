@@ -49,7 +49,7 @@ class EnumSemanticFallbackRuleTest {
                     }
                 }
                 """.formatted(body);
-        return new ConsumerDefinition(name, null, "com.example.orders.OrderEvent",
+        return new ConsumerDefinition(name, null, "com.example.orders.OrderEvent", ConsumerSourceType.BUILT_IN_SAMPLE,
                 List.of(new ConsumerSourceFile(name + "/Handler.java", source)));
     }
 
@@ -165,7 +165,7 @@ class EnumSemanticFallbackRuleTest {
             Schema target = new Schema.Parser().parse(nested.formatted("\"PENDING\",\"PICKED\",\"BACKORDERED\""));
 
             ConsumerDefinition warehouse = new ConsumerDefinition("warehouse", null,
-                    "com.example.orders.OrderEvent",
+                    "com.example.orders.OrderEvent", ConsumerSourceType.BUILT_IN_SAMPLE,
                     List.of(new ConsumerSourceFile("warehouse/Picker.java", """
                             import com.example.orders.LineStatus;
                             public class Picker {
@@ -269,7 +269,7 @@ class EnumSemanticFallbackRuleTest {
         @DisplayName("a switch over a different enum that shares a constant name is ignored")
         void noFindingForUnrelatedEnumSwitch() {
             ConsumerDefinition other = new ConsumerDefinition("payments", null,
-                    "com.example.orders.OrderEvent",
+                    "com.example.orders.OrderEvent", ConsumerSourceType.BUILT_IN_SAMPLE,
                     List.of(new ConsumerSourceFile("payments/Handler.java", """
                             import com.example.payments.PaymentStatus;
                             public class Handler {
@@ -304,7 +304,7 @@ class EnumSemanticFallbackRuleTest {
         @DisplayName("unparseable source is reported as a warning, not an exception")
         void unparseableSourceProducesWarning() {
             ConsumerDefinition broken = new ConsumerDefinition("broken-service", null,
-                    "com.example.orders.OrderEvent",
+                    "com.example.orders.OrderEvent", ConsumerSourceType.BUILT_IN_SAMPLE,
                     List.of(new ConsumerSourceFile("broken-service/Broken.java",
                             "public class Broken { this is not java (((")));
 
@@ -323,7 +323,7 @@ class EnumSemanticFallbackRuleTest {
         @DisplayName("one broken file does not stop analysis of a valid one")
         void brokenFileDoesNotBlockOthers() {
             ConsumerDefinition mixed = new ConsumerDefinition("mixed-service", null,
-                    "com.example.orders.OrderEvent",
+                    "com.example.orders.OrderEvent", ConsumerSourceType.BUILT_IN_SAMPLE,
                     List.of(new ConsumerSourceFile("mixed/Broken.java", "not java at all ((("),
                             new ConsumerSourceFile("mixed/Handler.java", """
                                     import com.example.orders.OrderStatus;

@@ -67,6 +67,36 @@ export interface OperationalRisk {
   findings: RiskFinding[];
 }
 
+export type ConsumerSourceType = 'BUILT_IN_SAMPLE';
+
+/** A registered consumer source, as the registry holds it right now. */
+export interface ConsumerSource {
+  name: string;
+  description: string | null;
+  consumesSchema: string;
+  sourceType: ConsumerSourceType;
+  sourceFiles: string[];
+}
+
+export interface ConsumerSources {
+  schemaFullName: string;
+  consumerCount: number;
+  consumers: ConsumerSource[];
+}
+
+/** What an analysis actually examined, read from its own stored snapshot. */
+export interface AnalysedConsumerSnapshot {
+  name: string;
+  sourceType: ConsumerSourceType;
+  sourceFiles: string[];
+}
+
+export interface ConsumerAnalysisContext {
+  consumerCount: number;
+  sourceTypes: ConsumerSourceType[];
+  consumers: AnalysedConsumerSnapshot[];
+}
+
 export interface AnalysisRun {
   analysisId: string;
   status: AnalysisStatus;
@@ -77,6 +107,7 @@ export interface AnalysisRun {
   targetVersion: number;
   compatibility: CompatibilityResults;
   operationalRisk: OperationalRisk;
+  consumerAnalysis: ConsumerAnalysisContext;
   failureCode: string | null;
   failureMessage: string | null;
   createdAt: string;
