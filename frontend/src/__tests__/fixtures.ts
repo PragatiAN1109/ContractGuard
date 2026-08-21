@@ -47,16 +47,22 @@ export const analysisRun: AnalysisRun = {
       {
         name: 'order-analytics-service',
         sourceType: 'BUILT_IN_SAMPLE',
+        consumerSourceId: null,
+        revision: 'sample1234ab',
         sourceFiles: ['order-analytics-service/FulfilmentMetricsCollector.java'],
       },
       {
         name: 'order-notification-service',
         sourceType: 'BUILT_IN_SAMPLE',
+        consumerSourceId: null,
+        revision: 'sample1234ab',
         sourceFiles: ['order-notification-service/OrderStatusHandler.java'],
       },
       {
         name: 'order-returns-service',
         sourceType: 'BUILT_IN_SAMPLE',
+        consumerSourceId: null,
+        revision: 'sample1234ab',
         sourceFiles: ['order-returns-service/ReturnsProcessor.java'],
       },
     ],

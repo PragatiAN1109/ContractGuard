@@ -3,12 +3,126 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { analysesApi } from '../api/analyses';
 import { projectsApi } from '../api/projects';
+import { consumersApi } from '../api/consumers';
 import { schemasApi } from '../api/schemas';
 import { ecommerceOrderSample } from '../samples/ecommerceOrder';
 import { useAsync } from '../hooks/useAsync';
 import { ErrorPanel } from '../components/ErrorPanel';
 import { Loading } from '../components/Loading';
 import { CompatBadge, RunStatusBadge, SeverityBadge } from '../components/StatusBadge';
+
+/** Registered consumer sources for the project, with an upload form for a new revision. */
+function ConsumersSection({ projectId }: { projectId: string }) {
+  const consumers = useAsync(() => consumersApi.list(projectId), [projectId]);
+  const [serviceName, setServiceName] = useState('');
+  const [consumesSchema, setConsumesSchema] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+
+  async function register(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await consumersApi.register(projectId, { serviceName, consumesSchema, files });
+      setServiceName('');
+      setConsumesSchema('');
+      setFiles([]);
+      consumers.reload();
+    } catch (e) {
+      setError(e as ApiError);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="section section-risk">
+      <header className="section-head">
+        <h2>Consumers</h2>
+        <p className="muted">
+          Registered Java source that operational-risk analysis may examine. Each upload is stored
+          as an immutable revision, so past analyses keep their provenance.
+        </p>
+      </header>
+
+      {consumers.loading && <Loading label="Loading consumers" />}
+      {consumers.error && <ErrorPanel error={consumers.error} onRetry={consumers.reload} />}
+
+      {consumers.data && consumers.data.length === 0 && (
+        <p className="muted">
+          No consumer source registered yet. Built-in sample bundles are still available and are
+          shown under &ldquo;Run analysis&rdquo;.
+        </p>
+      )}
+
+      {consumers.data && consumers.data.length > 0 && (
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Consumes</th>
+              <th>Source</th>
+              <th>Revision</th>
+              <th>Files</th>
+            </tr>
+          </thead>
+          <tbody>
+            {consumers.data.map((consumer) => (
+              <tr key={consumer.id}>
+                <td>
+                  <span className="consumer">{consumer.serviceName}</span>
+                </td>
+                <td className="mono small">{consumer.consumesSchema}</td>
+                <td>
+                  <span className="tag tag-neutral">{consumer.sourceType}</span>
+                </td>
+                <td className="mono small">{consumer.revision}</td>
+                <td>{consumer.fileCount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <form className="form" onSubmit={register}>
+        <label>
+          Service name
+          <input
+            value={serviceName}
+            onChange={(e) => setServiceName(e.target.value)}
+            placeholder="transaction-correlator"
+            required
+          />
+        </label>
+        <label>
+          Consumed record (Avro full name)
+          <input
+            value={consumesSchema}
+            onChange={(e) => setConsumesSchema(e.target.value)}
+            placeholder="com.example.payments.AuthorizationEvent"
+            required
+          />
+        </label>
+        <label>
+          Java source
+          <span className="muted small"> (.java files or one .zip)</span>
+          <input
+            type="file"
+            multiple
+            accept=".java,.zip"
+            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+          />
+        </label>
+        {error && <ErrorPanel error={error} />}
+        <button className="btn" type="submit" disabled={busy || files.length === 0}>
+          {busy ? 'Uploading…' : 'Register consumer source'}
+        </button>
+      </form>
+    </section>
+  );
+}
 
 /**
  * Pre-flight view of the consumer sources an analysis would examine, so operational-risk findings
@@ -46,8 +160,8 @@ function ConsumerSourcePreview({
       <span className="stat-label">Consumer sources included in operational-risk analysis</span>
       {consumerCount === 0 ? (
         <p className="muted small">
-          {`No consumer source is registered for ${schemaFullName}. Operational-risk analysis will ` +
-            'report nothing, which is not the same as finding nothing.'}
+          {`No registered consumer source will be included in operational-risk analysis for ` +
+            `${schemaFullName}. Reporting nothing is not the same as finding nothing.`}
         </p>
       ) : (
         <>
@@ -60,7 +174,10 @@ function ConsumerSourcePreview({
               <li key={consumer.name}>
                 <div className="consumer-head">
                   <span className="consumer">{consumer.name}</span>
-                  <span className="tag tag-neutral">built-in sample</span>
+                  <span className="tag tag-neutral">
+                    {consumer.sourceType === 'UPLOADED_SOURCE' ? 'uploaded source' : 'built-in sample'}
+                  </span>
+                  {consumer.revision && <code className="small">rev {consumer.revision}</code>}
                 </div>
                 {consumer.description && <p className="muted small">{consumer.description}</p>}
                 <ul className="file-list">
@@ -228,6 +345,8 @@ export function ProjectPage() {
           </button>
         </form>
       </section>
+
+      <ConsumersSection projectId={projectId} />
 
       <section className="section section-neutral">
         <header className="section-head">

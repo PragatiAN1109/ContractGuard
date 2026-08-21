@@ -103,6 +103,18 @@ describe('AnalysisPage', () => {
     expect(screen.getByText('2 evidence locations')).toBeInTheDocument();
   });
 
+  it('shows source provenance on the finding and in the context', async () => {
+    vi.mocked(analysesApi.get).mockResolvedValue(analysisRun);
+    vi.mocked(rolloutApi.get).mockResolvedValue(rolloutPlan);
+    renderPage();
+
+    await screen.findByText('Consumer analysis context');
+    // Revision appears in the context list and on each finding.
+    expect(screen.getAllByText(/sample1234ab/).length).toBeGreaterThanOrEqual(2);
+    expect(document.querySelectorAll('.finding-meta dt').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('built-in sample').length).toBeGreaterThanOrEqual(3);
+  });
+
   it('renders ordered rollout steps and limitations', async () => {
     vi.mocked(analysesApi.get).mockResolvedValue(analysisRun);
     vi.mocked(rolloutApi.get).mockResolvedValue(rolloutPlan);

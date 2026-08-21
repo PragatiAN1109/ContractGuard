@@ -15,6 +15,7 @@ import type {
 
 const SOURCE_TYPE_LABEL: Record<string, string> = {
   BUILT_IN_SAMPLE: 'built-in sample',
+  UPLOADED_SOURCE: 'uploaded source',
 };
 
 /** Groups findings by consumer while preserving backend ordering within each group. */
@@ -54,6 +55,7 @@ function ConsumerContext({ context }: { context: ConsumerAnalysisContext }) {
             <div className="consumer-head">
               <span className="consumer">{consumer.name}</span>
               <span className="tag tag-neutral">{SOURCE_TYPE_LABEL[consumer.sourceType] ?? consumer.sourceType}</span>
+              {consumer.revision && <code className="small">rev {consumer.revision}</code>}
             </div>
             <ul className="file-list">
               {consumer.sourceFiles.map((file) => (
@@ -106,7 +108,13 @@ function CompatibilityMode({ result }: { result: CompatibilityModeResult | null 
   );
 }
 
-function Finding({ finding }: { finding: RiskFinding }) {
+function Finding({
+  finding,
+  provenance,
+}: {
+  finding: RiskFinding;
+  provenance?: { sourceType: string; revision: string | null };
+}) {
   const newSymbol = finding.attributes.newSymbol;
   const fallbackSymbol = finding.attributes.fallbackSymbol;
 
@@ -119,6 +127,20 @@ function Finding({ finding }: { finding: RiskFinding }) {
       </div>
 
       <dl className="finding-meta">
+        {provenance && (
+          <div>
+            <dt>Source</dt>
+            <dd>
+              {SOURCE_TYPE_LABEL[provenance.sourceType] ?? provenance.sourceType}
+              {provenance.revision && (
+                <>
+                  {' · rev '}
+                  <code>{provenance.revision}</code>
+                </>
+              )}
+            </dd>
+          </div>
+        )}
         <div>
           <dt>Schema path</dt>
           <dd>
@@ -169,6 +191,13 @@ export function AnalysisPage() {
   const run = analysis.data;
   const risk = run.operationalRisk;
   const consumerGroups = groupByConsumer(risk.findings);
+  // Provenance lives on the analysed-consumer snapshot, not on the finding itself.
+  const provenanceByConsumer = new Map(
+    run.consumerAnalysis.consumers.map((c) => [
+      c.name,
+      { sourceType: c.sourceType as string, revision: c.revision },
+    ]),
+  );
 
   return (
     <div className="stack">
@@ -260,7 +289,11 @@ export function AnalysisPage() {
                 </h3>
                 <div className="findings">
                   {findings.map((finding, index) => (
-                    <Finding key={`${finding.ruleId}-${index}`} finding={finding} />
+                    <Finding
+                      key={`${finding.ruleId}-${index}`}
+                      finding={finding}
+                      provenance={provenanceByConsumer.get(finding.consumer)}
+                    />
                   ))}
                 </div>
               </div>

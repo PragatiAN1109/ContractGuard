@@ -29,10 +29,14 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(path, {
-      ...init,
-      headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-    });
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...((init?.headers as Record<string, string>) ?? {}),
+    };
+    if (headers['Content-Type'] === '') {
+      delete headers['Content-Type'];
+    }
+    response = await fetch(path, { ...init, headers });
   } catch {
     throw ApiError.unreachable();
   }
@@ -58,6 +62,9 @@ export const http = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+  /** Content-Type is deliberately omitted so the browser sets the multipart boundary. */
+  postForm: <T>(path: string, form: FormData) =>
+    request<T>(path, { method: 'POST', body: form, headers: { 'Content-Type': '' } }),
 };
 
 export const API_BASE = '/api/v1';

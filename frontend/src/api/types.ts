@@ -67,7 +67,7 @@ export interface OperationalRisk {
   findings: RiskFinding[];
 }
 
-export type ConsumerSourceType = 'BUILT_IN_SAMPLE';
+export type ConsumerSourceType = 'BUILT_IN_SAMPLE' | 'UPLOADED_SOURCE';
 
 /** A registered consumer source, as the registry holds it right now. */
 export interface ConsumerSource {
@@ -75,6 +75,8 @@ export interface ConsumerSource {
   description: string | null;
   consumesSchema: string;
   sourceType: ConsumerSourceType;
+  consumerSourceId: string | null;
+  revision: string | null;
   sourceFiles: string[];
 }
 
@@ -84,10 +86,28 @@ export interface ConsumerSources {
   consumers: ConsumerSource[];
 }
 
+/** A consumer source revision the user registered by uploading Java files. */
+export interface RegisteredConsumer {
+  id: string;
+  projectId: string;
+  serviceName: string;
+  consumesSchema: string;
+  sourceType: ConsumerSourceType;
+  revision: string;
+  revisionHash: string;
+  fileCount: number;
+  description: string | null;
+  sourceFiles: string[];
+  createdAt: string;
+  supersededAt: string | null;
+}
+
 /** What an analysis actually examined, read from its own stored snapshot. */
 export interface AnalysedConsumerSnapshot {
   name: string;
   sourceType: ConsumerSourceType;
+  consumerSourceId: string | null;
+  revision: string | null;
   sourceFiles: string[];
 }
 

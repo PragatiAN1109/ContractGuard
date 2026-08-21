@@ -1,0 +1,19 @@
+{
+  "type": "record",
+  "name": "ClaimAssessment",
+  "namespace": "com.example.claims",
+  "doc": "Emitted when an assessor completes a damage assessment.",
+  "fields": [
+    {"name": "claimId", "type": "string"},
+    {
+      "name": "outcome",
+      "type": {
+        "type": "enum",
+        "name": "AssessmentOutcome",
+        "symbols": ["REPAIRABLE", "TOTAL_LOSS", "REJECTED", "REQUIRES_MANUAL_REVIEW"],
+        "default": "REPAIRABLE"
+      }
+    },
+    {"name": "estimatedCostCents", "type": "long"}
+  ]
+}

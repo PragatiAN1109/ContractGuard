@@ -1,0 +1,10 @@
+{
+  "consumers": [
+    {
+      "name": "repair-workflow-service",
+      "description": "Creates repair plans. Still generated against claim-v1, and gives REPAIRABLE its own behaviour.",
+      "consumesSchema": "com.example.claims.ClaimAssessment",
+      "sourceFiles": ["repair-workflow-service/RepairWorkflowHandler.java"]
+    }
+  ]
+}
